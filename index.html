@@ -62,14 +62,14 @@
   </section>
 
   <section>
-    <h2>Cloudflare incidents <span style="text-transform:none;letter-spacing:0">(UFO runs on Cloudflare)</span></h2>
+    <h2>Infrastructure provider</h2>
     <div id="incidents" class="none">Checking…</div>
   </section>
 
   <div class="updated" id="updated"></div>
   <footer>
-    Checks run in your browser · hosted off Cloudflare so this page survives Cloudflare incidents<br>
-    <a href="https://ufo.alienz.ooo">ufo.alienz.ooo</a> · <a href="https://www.cloudflarestatus.com">cloudflarestatus.com</a>
+    Checks run live in your browser · hosted independently so this page stays up during infrastructure incidents<br>
+    <a href="https://ufo.alienz.ooo">ufo.alienz.ooo</a> · <a href="https://www.cloudflarestatus.com">provider status</a>
   </footer>
 </main>
 <script>
@@ -101,18 +101,18 @@ async function checkUfo() {
     return {
       overall: body.ok ? 'ok' : 'down',
       rows: [
-        row('Web / API (Worker)', 'ok', 'Operational'),
-        row('Database (D1)', comp(body.d1), body.d1 === 'ok' ? msFor('d1') ?? 'Operational' : body.d1),
-        row('Realtime & messages (Durable Objects)', comp(body.durable_objects), body.durable_objects === 'ok' ? msFor('durable_objects') ?? 'Operational' : body.durable_objects),
-        row('File storage (R2)', comp(body.r2), body.r2 === 'ok' ? msFor('r2') ?? 'Operational' : body.r2),
+        row('Web & API', 'ok', 'Operational'),
+        row('Database', comp(body.d1), body.d1 === 'ok' ? msFor('d1') ?? 'Operational' : body.d1),
+        row('Realtime & messages', comp(body.durable_objects), body.durable_objects === 'ok' ? msFor('durable_objects') ?? 'Operational' : body.durable_objects),
+        row('File storage', comp(body.r2), body.r2 === 'ok' ? msFor('r2') ?? 'Operational' : body.r2),
       ],
     }
   } catch {
     try {
       await fetchTimeout(`${API}/api/health`, 8000, { mode: 'no-cors' })
-      return { overall: 'warn', rows: [row('Web / API (Worker)', 'warn', 'Reachable — component detail unavailable')] }
+      return { overall: 'warn', rows: [row('Web & API', 'warn', 'Reachable — component detail unavailable')] }
     } catch {
-      return { overall: 'down', rows: [row('Web / API (Worker)', 'down', 'Unreachable')] }
+      return { overall: 'down', rows: [row('Web & API', 'down', 'Unreachable')] }
     }
   }
 }
@@ -123,14 +123,14 @@ async function checkCf() {
     const data = await resp.json()
     const picked = (data.incidents ?? []).filter(i =>
       i.impact === 'critical' || i.impact === 'major' || (i.impact === 'minor' && RELEVANT.test(i.name ?? '')))
-    if (picked.length === 0) { el('incidents').className = 'none'; el('incidents').textContent = 'No relevant unresolved incidents.'; return picked }
+    if (picked.length === 0) { el('incidents').className = 'none'; el('incidents').textContent = 'No known provider incidents affecting UFO.'; return picked }
     el('incidents').className = ''
     el('incidents').innerHTML = picked.map(i =>
       `<div class="incident"><span class="impact">${i.impact}</span>${i.name} <span style="color:var(--faint)">(${i.status})</span></div>`).join('')
     return picked
   } catch {
     el('incidents').className = 'none'
-    el('incidents').textContent = 'Cloudflare status unreachable.'
+    el('incidents').textContent = 'Provider status unavailable.'
     return []
   }
 }
@@ -144,7 +144,7 @@ async function refresh() {
   } else if (ufo.overall === 'warn') {
     overall.innerHTML = '<span class="dot dot--warn"></span><span>Partially degraded</span>'
   } else {
-    const blame = incidents.length > 0 ? ' — likely a Cloudflare incident (see below)' : ''
+    const blame = incidents.length > 0 ? ' — our infrastructure provider is having an incident (see below)' : ''
     overall.innerHTML = `<span class="dot dot--down"></span><span>Service disruption${blame}</span>`
   }
   el('updated').textContent = `Last checked ${new Date().toLocaleTimeString()} · auto-refreshes every 30s`
